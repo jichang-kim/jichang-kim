@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>식자재쿡 — AI 기반 End-to-End 식자재 유통 플랫폼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-1: #0C0E12; --bg-2: #12151A; --bg-3: #1A1E26; --bg-4: #242930;
+  --border: #2E3440;
+  --t1: #F2F3F5; --t2: #A8AEBA; --t3: #616A78;
+  --orange: #F27A2E; --orange-light: #F9A825;
+  --orange-dim: rgba(242,122,46,0.12); --orange-glow: rgba(242,122,46,0.25);
+  --teal: #2DD4BF; --teal-dim: rgba(45,212,191,0.1); --teal-glow: rgba(45,212,191,0.2);
+  --green: #34D399; --red: #F87171;
+}
+
+html {
+  scroll-snap-type: y mandatory;
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+}
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg-1); color: var(--t1);
+  overflow-x: hidden; line-height: 1.7;
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-1); }
+::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 2px; }
+
+/* ── Fullpage snap sections ── */
+.snap-section {
+  scroll-snap-align: start;
+  min-height: 100vh; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 32px; width: 100%; }
+.accent { color: var(--orange); }
+.teal { color: var(--teal); }
+
+/* ── Animations ── */
+@keyframes fadeUp { from { opacity:0; transform:translateY(50px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes slideInLeft { from { opacity:0; transform:translateX(-60px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInRight { from { opacity:0; transform:translateX(60px); } to { opacity:1; transform:translateX(0); } }
+@keyframes scaleIn { from { opacity:0; transform:scale(0.85); } to { opacity:1; transform:scale(1); } }
+
+.reveal { opacity:0; transform:translateY(40px); transition: all 0.8s cubic-bezier(0.16,1,0.3,1); }
+.reveal-left { opacity:0; transform:translateX(-50px); transition: all 0.8s cubic-bezier(0.16,1,0.3,1); }
+.reveal-right { opacity:0; transform:translateX(50px); transition: all 0.8s cubic-bezier(0.16,1,0.3,1); }
+.reveal.visible, .reveal-left.visible, .reveal-right.visible { opacity:1; transform:translate(0); }
+
+/* stagger children */
+.stagger > * { opacity:0; transform:translateY(30px); transition: all 0.7s cubic-bezier(0.16,1,0.3,1); }
+.stagger.visible > *:nth-child(1) { transition-delay:0s; }
+.stagger.visible > *:nth-child(2) { transition-delay:0.08s; }
+.stagger.visible > *:nth-child(3) { transition-delay:0.16s; }
+.stagger.visible > *:nth-child(4) { transition-delay:0.24s; }
+.stagger.visible > *:nth-child(5) { transition-delay:0.32s; }
+.stagger.visible > *:nth-child(6) { transition-delay:0.4s; }
+.stagger.visible > * { opacity:1; transform:translateY(0); }
+
+/* ── NAV ── */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  background:rgba(12,14,18,0.8); backdrop-filter:blur(24px);
+  border-bottom:1px solid transparent; transition: border-color 0.3s;
+}
+nav.scrolled { border-bottom-color: var(--border); }
+.nav-inner {
+  max-width:1200px; margin:0 auto; padding:0 32px;
+  display:flex; align-items:center; justify-content:space-between; height:60px;
+}
+.nav-logo { font-family:'Sora',sans-serif; font-weight:800; font-size:20px; color:var(--t1); text-decoration:none; letter-spacing:-0.5px; }
+.nav-logo span { color:var(--orange); }
+.nav-links { display:flex; gap:28px; list-style:none; }
+.nav-links a {
+  color:var(--t3); text-decoration:none; font-size:13px; font-weight:500;
+  letter-spacing:0.5px; transition:color 0.3s; position:relative;
+}
+.nav-links a::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:var(--orange); transition:width 0.3s; }
+.nav-links a:hover { color:var(--t1); }
+.nav-links a:hover::after { width:100%; }
+.nav-cta {
+  padding:8px 20px; background:var(--orange); color:var(--bg-1); border:none;
+  border-radius:6px; font-size:13px; font-weight:700; cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif; transition:all 0.3s;
+}
+.nav-cta:hover { background:var(--orange-light); transform:translateY(-1px); box-shadow:0 4px 20px var(--orange-glow); }
+
+/* ── Page indicator dots ── */
+.page-dots {
+  position:fixed; right:24px; top:50%; transform:translateY(-50%); z-index:99;
+  display:flex; flex-direction:column; gap:12px;
+}
+.page-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--bg-4);
+  border:1px solid var(--t3); cursor:pointer; transition:all 0.3s; padding:0;
+}
+.page-dot.active { background:var(--orange); border-color:var(--orange); transform:scale(1.3); box-shadow:0 0 10px var(--orange-glow); }
+
+/* ══════════════════════════════════════════
+   HERO
+   ══════════════════════════════════════════ */
+.hero { background:var(--bg-1); }
+.hero-bg {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 800px 600px at 20% 50%, rgba(242,122,46,0.06), transparent),
+    radial-gradient(ellipse 600px 500px at 80% 30%, rgba(45,212,191,0.04), transparent);
+}
+.hero-grid-bg {
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(46,52,64,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(46,52,64,0.12) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent);
+}
+.hero-content { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+.hero-label {
+  font-family:'Sora',sans-serif; font-size:11px; font-weight:600; color:var(--orange);
+  letter-spacing:5px; text-transform:uppercase; margin-bottom:16px;
+  animation: fadeIn 0.8s ease-out;
+}
+.hero-title {
+  font-family:'Sora',sans-serif; font-size:clamp(34px,4.5vw,52px); font-weight:800;
+  line-height:1.15; margin-bottom:20px; letter-spacing:-1px;
+  animation: fadeUp 1s cubic-bezier(0.16,1,0.3,1);
+}
+.hero-title .hl {
+  background:linear-gradient(135deg, var(--orange), var(--orange-light));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.hero-desc {
+  font-size:15px; color:var(--t2); line-height:1.8; margin-bottom:32px; max-width:460px;
+  animation: fadeUp 1s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+}
+.hero-btns { display:flex; gap:14px; animation: fadeUp 1s 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+.btn-primary {
+  padding:13px 28px; background:var(--orange); color:var(--bg-1); border:none;
+  border-radius:8px; font-size:14px; font-weight:700; cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif; transition:all 0.3s; position:relative; overflow:hidden;
+}
+.btn-primary::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform:translateX(-100%); transition:transform 0.5s;
+}
+.btn-primary:hover::before { transform:translateX(100%); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 30px var(--orange-glow); }
+.btn-outline {
+  padding:13px 28px; background:transparent; color:var(--t1); border:1px solid var(--border);
+  border-radius:8px; font-size:14px; font-weight:500; cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif; transition:all 0.3s;
+}
+.btn-outline:hover { border-color:var(--teal); color:var(--teal); transform:translateY(-2px); }
+
+/* ── Hero metric cards: IMPROVED ALIGNMENT ── */
+.hero-metrics {
+  display:grid; grid-template-columns:1fr 1fr; gap:16px;
+  animation: slideInRight 1s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+}
+.metric-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:16px;
+  padding:28px 24px; transition:all 0.4s; position:relative; overflow:hidden;
+}
+.metric-card:hover { border-color:var(--orange); transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,0.3); }
+.metric-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--orange), var(--teal)); opacity:0; transition:opacity 0.4s;
+}
+.metric-card:hover::before { opacity:1; }
+/* KEY IMPROVEMENT: value on top, label below, clean stacking */
+.metric-value {
+  font-family:'Sora',sans-serif; font-size:36px; font-weight:800;
+  line-height:1; margin-bottom:8px; color:var(--orange);
+}
+.metric-card:nth-child(2) .metric-value,
+.metric-card:nth-child(4) .metric-value { color:var(--teal); }
+.metric-label { font-size:13px; color:var(--t3); font-weight:400; letter-spacing:0.3px; }
+
+/* ══════════════════════════════════════════
+   STATS STRIP (acts as transition)
+   ══════════════════════════════════════════ */
+.stats-section { background:var(--bg-2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:32px; text-align:center; }
+.stat-item { padding:20px 8px; }
+.stat-num {
+  font-family:'Sora',sans-serif; font-size:48px; font-weight:800;
+  background:linear-gradient(135deg, var(--orange), var(--orange-light));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text; line-height:1.1; margin-bottom:8px;
+}
+.stat-label { font-size:13px; color:var(--t3); }
+
+/* ══════════════════════════════════════════
+   SECTION COMMON
+   ══════════════════════════════════════════ */
+.section-label {
+  font-family:'Sora',sans-serif; font-size:11px; font-weight:600; color:var(--orange);
+  letter-spacing:5px; text-transform:uppercase; margin-bottom:10px;
+}
+.section-title {
+  font-family:'Sora',sans-serif; font-size:clamp(26px,3.2vw,38px); font-weight:800;
+  line-height:1.25; margin-bottom:14px; letter-spacing:-0.5px;
+}
+.section-desc { font-size:15px; color:var(--t2); max-width:580px; margin-bottom:40px; }
+
+/* ══════════════════════════════════════════
+   PROBLEM
+   ══════════════════════════════════════════ */
+.problem-section { background:var(--bg-1); }
+.problem-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.problem-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:16px;
+  padding:32px 24px; transition:all 0.4s;
+}
+.problem-card:hover { transform:translateY(-5px); border-color:var(--red); box-shadow:0 16px 50px rgba(0,0,0,0.3); }
+.problem-icon { font-size:28px; margin-bottom:16px; display:block; }
+.problem-card h3 { font-size:17px; font-weight:700; margin-bottom:10px; }
+.problem-card p { font-size:13px; color:var(--t2); line-height:1.7; margin-bottom:18px; }
+/* IMPROVED: stat box with clean value/label stacking */
+.problem-stat {
+  background:rgba(248,113,113,0.06); border-radius:10px; padding:14px 18px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.problem-stat-val { font-family:'Sora',sans-serif; font-size:26px; font-weight:800; color:var(--red); line-height:1; }
+.problem-stat-label { font-size:11px; color:var(--t3); letter-spacing:0.3px; }
+
+/* ══════════════════════════════════════════
+   SOLUTION
+   ══════════════════════════════════════════ */
+.solution-section { background:var(--bg-2); }
+.solution-layout { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.platform-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:16px;
+  overflow:hidden; transition:all 0.4s;
+}
+.platform-card:hover { transform:translateY(-4px); box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+.platform-header { padding:24px 28px; border-bottom:1px solid var(--border); }
+.platform-header.orange { background:linear-gradient(135deg, rgba(242,122,46,0.08), transparent); }
+.platform-header.teal { background:linear-gradient(135deg, rgba(45,212,191,0.08), transparent); }
+.platform-badge {
+  display:inline-block; padding:3px 10px; border-radius:20px;
+  font-size:10px; font-weight:700; letter-spacing:1.5px; margin-bottom:10px;
+}
+.platform-badge.orange { background:var(--orange-dim); color:var(--orange); }
+.platform-badge.teal { background:var(--teal-dim); color:var(--teal); }
+.platform-header h3 { font-size:20px; font-weight:800; margin-bottom:4px; }
+.platform-header p { font-size:12px; color:var(--t3); }
+.platform-features { padding:20px 28px; }
+.feature-item {
+  display:flex; gap:12px; align-items:center; padding:10px 0;
+  border-bottom:1px solid rgba(46,52,64,0.4); font-size:13px; color:var(--t2);
+}
+.feature-item:last-child { border-bottom:none; }
+.feature-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.feature-dot.orange { background:var(--orange); box-shadow:0 0 6px var(--orange-glow); }
+.feature-dot.teal { background:var(--teal); box-shadow:0 0 6px var(--teal-glow); }
+
+/* ══════════════════════════════════════════
+   COMPETITIVE TABLE
+   ══════════════════════════════════════════ */
+.competitive-section { background:var(--bg-1); }
+.comp-wrap { background:var(--bg-3); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.comp-table { width:100%; border-collapse:collapse; }
+.comp-table thead th {
+  padding:14px 18px; font-size:12px; font-weight:700; text-align:center;
+  background:var(--bg-4); color:var(--t3); border-bottom:1px solid var(--border);
+}
+.comp-table thead th:first-child { text-align:left; }
+.comp-table thead th:nth-child(2) { color:var(--orange); }
+.comp-table tbody td {
+  padding:13px 18px; font-size:13px; text-align:center; color:var(--t2);
+  border-bottom:1px solid rgba(46,52,64,0.35);
+}
+.comp-table tbody td:first-child { text-align:left; font-weight:600; color:var(--t1); }
+.comp-table tbody tr:hover { background:rgba(242,122,46,0.03); }
+.comp-table tbody td:nth-child(2) { background:rgba(242,122,46,0.04); font-weight:700; color:var(--t1); }
+.yes { color:var(--green); font-weight:700; }
+.no { color:var(--t3); }
+.unique { color:var(--orange); font-weight:800; }
+
+/* ══════════════════════════════════════════
+   MOAT
+   ══════════════════════════════════════════ */
+.moat-section { background:var(--bg-2); }
+.moat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:28px; }
+.moat-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:16px;
+  padding:32px 24px; text-align:center; transition:all 0.4s; position:relative;
+}
+.moat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  border-radius:16px 16px 0 0;
+  background:linear-gradient(90deg, var(--orange), var(--teal)); opacity:0; transition:opacity 0.4s;
+}
+.moat-card:hover { transform:translateY(-5px); border-color:var(--teal); box-shadow:0 16px 50px rgba(0,0,0,0.3); }
+.moat-card:hover::before { opacity:1; }
+/* IMPROVED: name / stat / label clean stacking */
+.moat-name { font-size:14px; font-weight:600; color:var(--t2); margin-bottom:12px; letter-spacing:0.5px; }
+.moat-stat { font-family:'Sora',sans-serif; font-size:42px; font-weight:800; color:var(--teal); line-height:1; margin-bottom:6px; }
+.moat-stat-unit { font-size:13px; color:var(--t3); margin-bottom:18px; }
+.moat-desc { font-size:12px; color:var(--t3); line-height:1.6; }
+.moat-insight {
+  background:linear-gradient(135deg, var(--orange-dim), var(--teal-dim));
+  border:1px solid var(--border); border-radius:12px; padding:20px 28px;
+  text-align:center; font-size:13px; color:var(--t2); line-height:1.7;
+}
+
+/* ══════════════════════════════════════════
+   INVESTMENT
+   ══════════════════════════════════════════ */
+.invest-section { background:var(--bg-1); }
+.invest-layout { display:grid; grid-template-columns:1fr 1fr; gap:40px; }
+.invest-terms { background:var(--bg-3); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.invest-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:13px 24px; border-bottom:1px solid rgba(46,52,64,0.35); transition:background 0.2s;
+}
+.invest-row:hover { background:rgba(242,122,46,0.03); }
+.invest-row:last-child { border-bottom:none; }
+.term-key { font-size:12px; color:var(--t3); }
+.term-val { font-size:13px; font-weight:700; color:var(--t1); }
+.term-val.hl { color:var(--orange); font-size:15px; }
+
+.fund-cards { display:flex; flex-direction:column; gap:14px; }
+.fund-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:14px;
+  padding:22px 24px; display:flex; align-items:center; gap:20px; transition:all 0.4s;
+}
+.fund-card:hover { border-color:var(--orange); transform:translateX(4px); }
+/* IMPROVED: percentage + amount stacked */
+.fund-pct-block { min-width:72px; text-align:center; }
+.fund-pct-val { font-family:'Sora',sans-serif; font-size:28px; font-weight:800; color:var(--orange); line-height:1; }
+.fund-pct-amt { font-size:11px; color:var(--t3); margin-top:2px; }
+.fund-info { flex:1; }
+.fund-info h4 { font-size:14px; font-weight:700; margin-bottom:3px; }
+.fund-info p { font-size:11px; color:var(--t3); }
+.fund-bar { height:3px; background:var(--bg-4); border-radius:2px; margin-top:8px; overflow:hidden; }
+.fund-bar-fill {
+  height:100%; border-radius:2px;
+  background:linear-gradient(90deg, var(--orange), var(--teal));
+  transition:width 1.5s cubic-bezier(0.16,1,0.3,1); width:0;
+}
+.fund-card.visible .fund-bar-fill { width:var(--fill); }
+
+/* ══════════════════════════════════════════
+   EXIT
+   ══════════════════════════════════════════ */
+.exit-section { background:var(--bg-2); }
+.exit-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.exit-card {
+  background:var(--bg-3); border:1px solid var(--border); border-radius:16px;
+  padding:32px 28px; transition:all 0.4s;
+}
+.exit-card:hover { transform:translateY(-4px); box-shadow:0 16px 50px rgba(0,0,0,0.3); }
+.exit-badge {
+  display:inline-block; padding:3px 12px; border-radius:20px; font-size:10px;
+  font-weight:700; margin-bottom:14px; letter-spacing:1.5px;
+}
+.exit-badge.ma { background:var(--orange-dim); color:var(--orange); }
+.exit-badge.ipo { background:var(--teal-dim); color:var(--teal); }
+.exit-card h3 { font-size:18px; font-weight:800; margin-bottom:6px; }
+.exit-card .sub { font-size:13px; color:var(--t2); margin-bottom:18px; }
+.exit-example { display:flex; gap:10px; align-items:center; padding:7px 0; font-size:12px; color:var(--t2); }
+.exit-arrow { color:var(--orange); font-weight:700; font-size:14px; }
+
+/* ══════════════════════════════════════════
+   CLOSING
+   ══════════════════════════════════════════ */
+.closing-section { background:var(--bg-1); flex-direction:column; }
+.closing-inner { text-align:center; }
+.closing-title {
+  font-family:'Sora',sans-serif; font-size:clamp(36px,5vw,56px); font-weight:800;
+  margin-bottom:16px; letter-spacing:-1px;
+}
+.closing-sub { font-size:17px; color:var(--orange); margin-bottom:32px; }
+.closing-divider { width:60px; height:3px; background:var(--orange); margin:0 auto 32px; border-radius:2px; }
+.closing-info { font-size:14px; color:var(--t2); line-height:2; }
+.closing-info strong { color:var(--t1); font-weight:700; }
+.confidential { color:var(--red); font-weight:700; letter-spacing:3px; font-size:11px; margin-top:24px; display:block; }
+
+/* ── Responsive ── */
+@media (max-width:900px) {
+  html { scroll-snap-type: y proximity; }
+  .snap-section { min-height:auto; height:auto; padding:80px 0; }
+  .hero-content { grid-template-columns:1fr; gap:40px; }
+  .hero-metrics { grid-template-columns:1fr 1fr; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .problem-grid, .moat-grid { grid-template-columns:1fr; }
+  .solution-layout, .invest-layout, .exit-grid { grid-template-columns:1fr; }
+  .nav-links { display:none; }
+  .page-dots { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">식자재<span>쿡</span></a>
+    <ul class="nav-links">
+      <li><a href="#s-problem">시장 기회</a></li>
+      <li><a href="#s-solution">서비스</a></li>
+      <li><a href="#s-competitive">경쟁 우위</a></li>
+      <li><a href="#s-invest">투자 조건</a></li>
+    </ul>
+    <button class="nav-cta" onclick="document.getElementById('s-invest').scrollIntoView()">투자 제안서</button>
+  </div>
+</nav>
+
+<!-- PAGE DOTS -->
+<div class="page-dots" id="pageDots"></div>
+
+<!-- ═══════════════════ SECTION 1: HERO ═══════════════════ -->
+<section class="snap-section hero" id="s-hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid-bg"></div>
+  <div class="container hero-content">
+    <div>
+      <div class="hero-label">Investment Proposal 2026</div>
+      <h1 class="hero-title"><span class="hl">64조 원</span> 시장의<br>디지털 전환을<br>선도합니다</h1>
+      <p class="hero-desc">AI 기반 파트너십 유저체인을 활용한 외식업 전용 통합 오퍼레이팅 플랫폼. 오픈마켓부터 프랜차이즈 B2B까지, End-to-End 식자재 유통의 새로운 기준.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="document.getElementById('s-solution').scrollIntoView()">서비스 알아보기 →</button>
+        <button class="btn-outline" onclick="document.getElementById('s-invest').scrollIntoView()">투자 조건 확인</button>
+      </div>
+    </div>
+    <div class="hero-metrics">
+      <div class="metric-card">
+        <div class="metric-value" data-target="64" data-suffix="조 원">0</div>
+        <div class="metric-label">B2B 식자재 시장 규모</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" data-target="4000" data-suffix="+">0</div>
+        <div class="metric-label">누적 플랫폼 사용자</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" data-target="14000" data-suffix="+">0</div>
+        <div class="metric-label">SKU 취급 품목</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value" data-target="17" data-suffix="개 +">0</div>
+        <div class="metric-label">협력 파트너사</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 2: STATS ═══════════════════ -->
+<section class="snap-section stats-section" id="s-stats">
+  <div class="container">
+    <div class="section-label reveal">Market Snapshot</div>
+    <h2 class="section-title reveal" style="margin-bottom:40px">절대적 1인자가 없는 <span class="accent">파편화된 시장</span></h2>
+    <div class="stats-grid stagger">
+      <div class="stat-item">
+        <div class="stat-num">90%+</div>
+        <div class="stat-label">아날로그 거래 비율</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">~7%</div>
+        <div class="stat-label">대기업 빅4 합산 점유율</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">20~30%</div>
+        <div class="stat-label">온라인 시장 연 CAGR</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">8.07%</div>
+        <div class="stat-label">부산 자영업자 침투율</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 3: PROBLEM ═══════════════════ -->
+<section class="snap-section problem-section" id="s-problem">
+  <div class="container">
+    <div class="section-label reveal">Pain Points</div>
+    <h2 class="section-title reveal">기존 유통 방식의 <span class="accent">구조적 비효율</span></h2>
+    <p class="section-desc reveal">57만 음식점, 전체 거래의 90%가 전화·수기 기반. 디지털 전환의 기회가 열리고 있습니다.</p>
+    <div class="problem-grid stagger">
+      <div class="problem-card">
+        <span class="problem-icon">📞</span>
+        <h3>유통 채널 파편화</h3>
+        <p>57만 음식점 중 산업화 공급 10% 미만. 평균 3~5개 업체에 전화·문자 개별 발주.</p>
+        <div class="problem-stat">
+          <div class="problem-stat-val">90%+</div>
+          <div class="problem-stat-label">아날로그 거래 비율</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">💰</span>
+        <h3>높은 원가 부담</h3>
+        <p>식자재 원가가 매출 대비 30~40%. 소량 다품종, 정보 비대칭으로 절감이 어려움.</p>
+        <div class="problem-stat">
+          <div class="problem-stat-val">30~40%</div>
+          <div class="problem-stat-label">원가 비중</div>
+        </div>
+      </div>
+      <div class="problem-card">
+        <span class="problem-icon">⚖️</span>
+        <h3>프랜차이즈 갈등</h3>
+        <p>가맹본부 61%가 차액가맹금 구조. 점주 54.9% 불공정행위 경험.</p>
+        <div class="problem-stat">
+          <div class="problem-stat-val">215억</div>
+          <div class="problem-stat-label">피자헛 반환 판결</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 4: SOLUTION ═══════════════════ -->
+<section class="snap-section solution-section" id="s-solution">
+  <div class="container">
+    <div class="section-label reveal">Business Model</div>
+    <h2 class="section-title reveal">듀얼 플랫폼으로 <span class="accent">End-to-End</span> 솔루션</h2>
+    <p class="section-desc reveal">B2C 오픈마켓과 B2B 프랜차이즈 전용 폐쇄몰을 동시에 운영하는 유일한 플랫폼.</p>
+    <div class="solution-layout">
+      <div class="platform-card reveal-left">
+        <div class="platform-header orange">
+          <span class="platform-badge orange">B2C OPEN MARKET</span>
+          <h3>식자재쿡</h3>
+          <p>외식업자를 위한 오픈마켓형 식자재 배송 플랫폼</p>
+        </div>
+        <div class="platform-features">
+          <div class="feature-item"><div class="feature-dot orange"></div>회원가입 없이 가격 비교</div>
+          <div class="feature-item"><div class="feature-dot orange"></div>익일배송 (영남권 / 수도권)</div>
+          <div class="feature-item"><div class="feature-dot orange"></div>업체 맞춤 내부적재 서비스</div>
+          <div class="feature-item"><div class="feature-dot orange"></div>유저체인 파트너 프로모션</div>
+          <div class="feature-item"><div class="feature-dot orange"></div>쿡페이 외상결제 시스템</div>
+          <div class="feature-item"><div class="feature-dot orange"></div>14,000+ SKU 취급</div>
+        </div>
+      </div>
+      <div class="platform-card reveal-right">
+        <div class="platform-header teal">
+          <span class="platform-badge teal">B2B FRANCHISE</span>
+          <h3>브랜드쿡</h3>
+          <p>프랜차이즈 맞춤 전용 폐쇄몰 플랫폼</p>
+        </div>
+        <div class="platform-features">
+          <div class="feature-item"><div class="feature-dot teal"></div>프랜차이즈 전용 폐쇄몰</div>
+          <div class="feature-item"><div class="feature-dot teal"></div>UX/UI 커스터마이징</div>
+          <div class="feature-item"><div class="feature-dot teal"></div>실시간 대시보드</div>
+          <div class="feature-item"><div class="feature-dot teal"></div>AI 기반 QSC 점검</div>
+          <div class="feature-item"><div class="feature-dot teal"></div>슈퍼바이징 운영지원</div>
+          <div class="feature-item"><div class="feature-dot teal"></div>SaaS 구독 모델</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 5: COMPETITIVE ═══════════════════ -->
+<section class="snap-section competitive-section" id="s-competitive">
+  <div class="container">
+    <div class="section-label reveal">Competitive Landscape</div>
+    <h2 class="section-title reveal">경쟁사 대비 <span class="accent">압도적 차별성</span></h2>
+    <p class="section-desc reveal">유저체인까지 결합한 End-to-End 플랫폼은 식자재쿡이 유일합니다.</p>
+    <div class="comp-wrap reveal">
+      <table class="comp-table">
+        <thead><tr><th>항목</th><th>식자재쿡</th><th>식봄</th><th>푸드팡</th><th>발주고</th></tr></thead>
+        <tbody>
+          <tr><td>사업 모델</td><td class="unique">오픈마켓+폐쇄몰+유저체인</td><td>SaaS+오픈마켓</td><td>도매시장 직배송</td><td>수발주 SaaS</td></tr>
+          <tr><td>식자재 직접 유통</td><td class="yes">O</td><td class="yes">O</td><td class="yes">O</td><td class="no">X</td></tr>
+          <tr><td>프랜차이즈 PB</td><td class="yes">O</td><td class="yes">O</td><td class="no">X</td><td class="yes">O</td></tr>
+          <tr><td>실시간 대시보드</td><td class="yes">O</td><td class="yes">O</td><td class="no">X</td><td class="yes">O</td></tr>
+          <tr><td>SV / QSC 지원</td><td class="yes">O</td><td class="no">X</td><td class="no">X</td><td class="no">X</td></tr>
+          <tr><td>가맹점주 CX관리</td><td class="yes">O</td><td class="no">X</td><td class="no">X</td><td class="no">X</td></tr>
+          <tr><td>협력사 유저체인</td><td class="unique">O (유일)</td><td class="no">X</td><td class="no">X</td><td class="no">X</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 6: MOAT ═══════════════════ -->
+<section class="snap-section moat-section" id="s-moat">
+  <div class="container">
+    <div class="section-label reveal">Economic Moat</div>
+    <h2 class="section-title reveal">유저체인 기반 <span class="teal">경제적 해자</span></h2>
+    <p class="section-desc reveal">경쟁사가 단기간에 복제할 수 없는 구조적 해자.</p>
+    <div class="moat-grid stagger">
+      <div class="moat-card">
+        <div class="moat-name">KT하이오더</div>
+        <div class="moat-stat">20만+</div>
+        <div class="moat-stat-unit">테이블</div>
+        <div class="moat-desc">메뉴별 주문량 데이터 연동<br>테이블오더 프로모션 협업</div>
+      </div>
+      <div class="moat-card">
+        <div class="moat-name">토스플레이스</div>
+        <div class="moat-stat">10만+</div>
+        <div class="moat-stat-unit">가맹점</div>
+        <div class="moat-desc">POS 내 식자재쿡 탑재<br>실시간 매출 데이터 연동</div>
+      </div>
+      <div class="moat-card">
+        <div class="moat-name">장사닥터</div>
+        <div class="moat-stat">4만+</div>
+        <div class="moat-stat-unit">회원</div>
+        <div class="moat-desc">커뮤니티 바이럴 마케팅<br>CAC 절감 채널</div>
+      </div>
+    </div>
+    <div class="moat-insight reveal">
+      파트너 고객 DB + 데이터 자산 결합 → <strong class="accent">기하급수적 플랫폼 가치 증가</strong>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 7: INVESTMENT ═══════════════════ -->
+<section class="snap-section invest-section" id="s-invest">
+  <div class="container">
+    <div class="section-label reveal">Investment Details</div>
+    <h2 class="section-title reveal">투자 구조 및 <span class="accent">자금 집행</span></h2>
+    <div class="invest-layout">
+      <div class="invest-terms reveal-left">
+        <div class="invest-row"><span class="term-key">투자 방식</span><span class="term-val">제3자 배정 유상증자</span></div>
+        <div class="invest-row"><span class="term-key">발행 주식</span><span class="term-val">상환전환우선주 (RCPS)</span></div>
+        <div class="invest-row"><span class="term-key">투자 금액</span><span class="term-val hl">15억 원</span></div>
+        <div class="invest-row"><span class="term-key">Pre-money</span><span class="term-val hl">65억 원</span></div>
+        <div class="invest-row"><span class="term-key">Post-money</span><span class="term-val hl">80억 원</span></div>
+        <div class="invest-row"><span class="term-key">지분희석률</span><span class="term-val">23.08%</span></div>
+        <div class="invest-row"><span class="term-key">우선배당권</span><span class="term-val">연 1%</span></div>
+        <div class="invest-row"><span class="term-key">상환권</span><span class="term-val">발행 후 3년~</span></div>
+        <div class="invest-row"><span class="term-key">전환권</span><span class="term-val">1:1 보통주 전환</span></div>
+        <div class="invest-row"><span class="term-key">이사 지명권</span><span class="term-val">1석</span></div>
+      </div>
+      <div class="fund-cards reveal-right">
+        <div class="fund-card" style="--fill:25%">
+          <div class="fund-pct-block"><div class="fund-pct-val">25%</div><div class="fund-pct-amt">3.75억</div></div>
+          <div class="fund-info">
+            <h4>IT 및 테크 고도화</h4>
+            <p>AI 에이전트 · SCM 통합 플랫폼 · B2B 큐레이션 엔진</p>
+            <div class="fund-bar"><div class="fund-bar-fill"></div></div>
+          </div>
+        </div>
+        <div class="fund-card" style="--fill:50%">
+          <div class="fund-pct-block"><div class="fund-pct-val">50%</div><div class="fund-pct-amt">7.50억</div></div>
+          <div class="fund-info">
+            <h4>인프라 및 매입</h4>
+            <p>전략적 직매입 물량 · 현금 유동성 · 재고자산 확보</p>
+            <div class="fund-bar"><div class="fund-bar-fill"></div></div>
+          </div>
+        </div>
+        <div class="fund-card" style="--fill:25%">
+          <div class="fund-pct-block"><div class="fund-pct-val">25%</div><div class="fund-pct-amt">3.75억</div></div>
+          <div class="fund-info">
+            <h4>마케팅 및 영업</h4>
+            <p>파트너사 프로모션 · 퍼포먼스 마케팅 · 영업 인력</p>
+            <div class="fund-bar"><div class="fund-bar-fill"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 8: EXIT ═══════════════════ -->
+<section class="snap-section exit-section" id="s-exit">
+  <div class="container">
+    <div class="section-label reveal">Exit Strategy</div>
+    <h2 class="section-title reveal">검증된 <span class="accent">Exit 경로</span></h2>
+    <p class="section-desc reveal">전략적 M&A와 코스닥 IPO 두 경로 모두 실현 가능합니다.</p>
+    <div class="exit-grid">
+      <div class="exit-card reveal-left">
+        <span class="exit-badge ma">SCENARIO 1</span>
+        <h3>전략적 M&A</h3>
+        <p class="sub">대기업 식자재 플랫폼 인수 가속화</p>
+        <div class="exit-example"><span class="exit-arrow">→</span> CJ프레시웨이 → 마켓보로 (806억)</div>
+        <div class="exit-example"><span class="exit-arrow">→</span> 사조그룹 → 푸디스트 (2,500억)</div>
+        <div class="exit-example"><span class="exit-arrow">→</span> 한화 → 아워홈 (8,695억)</div>
+      </div>
+      <div class="exit-card reveal-right">
+        <span class="exit-badge ipo">SCENARIO 2</span>
+        <h3>IPO (코스닥)</h3>
+        <p class="sub">B2B 식자재 플랫폼 상장 선례</p>
+        <div class="exit-example"><span class="exit-arrow" style="color:var(--teal)">→</span> 미트박스: 매출 1,103억 코스닥 상장</div>
+        <div class="exit-example"><span class="exit-arrow" style="color:var(--teal)">→</span> Choco ($1.2B), GrubMarket ($3B+)</div>
+        <div class="exit-example"><span class="exit-arrow" style="color:var(--teal)">→</span> 목표: 연 매출 300억+, EBITDA 흑자</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECTION 9: CLOSING ═══════════════════ -->
+<section class="snap-section closing-section" id="s-closing">
+  <div class="closing-inner">
+    <h2 class="closing-title reveal">Thank You</h2>
+    <p class="closing-sub reveal">64조 원 시장의 디지털 전환을 선도합니다</p>
+    <div class="closing-divider reveal"></div>
+    <div class="closing-info reveal">
+      <strong>주식회사 식자재쿡</strong><br>
+      부산광역시 사하구 괴정로 114 5층<br>
+      www.식자재쿡.com<br>
+      <span class="confidential">CONFIDENTIAL</span>
+    </div>
+  </div>
+</section>
+
+<script>
+// ── Intersection Observer for reveals ──
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -30px 0px' });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .stagger, .fund-card').forEach(el => obs.observe(el));
+
+// ── Nav scroll ──
+window.addEventListener('scroll', () => {
+  document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Counter animation ──
+let counterDone = false;
+function animateCounters() {
+  if (counterDone) return;
+  counterDone = true;
+  document.querySelectorAll('.metric-value[data-target]').forEach(counter => {
+    const target = parseInt(counter.dataset.target);
+    const suffix = counter.dataset.suffix || '';
+    const duration = 2000;
+    const start = performance.now();
+    function update(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 4);
+      counter.textContent = Math.round(eased * target).toLocaleString() + (p >= 1 ? suffix : '');
+      if (p < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  });
+}
+const heroObs = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) { animateCounters(); heroObs.disconnect(); }
+}, { threshold: 0.3 });
+heroObs.observe(document.querySelector('.hero-metrics'));
+
+// ── Page indicator dots ──
+const sections = document.querySelectorAll('.snap-section');
+const dotsContainer = document.getElementById('pageDots');
+sections.forEach((sec, i) => {
+  const dot = document.createElement('button');
+  dot.className = 'page-dot';
+  dot.setAttribute('aria-label', `Section ${i + 1}`);
+  dot.addEventListener('click', () => sec.scrollIntoView());
+  dotsContainer.appendChild(dot);
+});
+const dots = dotsContainer.querySelectorAll('.page-dot');
+
+const sectionObs = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const idx = Array.from(sections).indexOf(entry.target);
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+  });
+}, { threshold: 0.5 });
+sections.forEach(sec => sectionObs.observe(sec));
+
+// ── Parallax hero grid ──
+window.addEventListener('scroll', () => {
+  const g = document.querySelector('.hero-grid-bg');
+  if (g && window.scrollY < window.innerHeight) {
+    g.style.transform = `translateY(${window.scrollY * 0.3}px)`;
+  }
+});
+</script>
+</body>
+</html>
